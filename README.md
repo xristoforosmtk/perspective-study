@@ -12,3 +12,4 @@ An interactive Python-based tool designed to visualize and study **3-point persp
 * **Language:** Python
 * **Libraries:** Matplotlib, NumPy, Ipywidgets
 * **Environment:** Best viewed in Jupyter Notebook or VS Code Interactive window.
+<img width="555" height="453" alt="Capture" src="https://github.com/user-attachments/assets/4b907b2a-8607-4caf-917e-131178ec8c05" />
