@@ -3,7 +3,7 @@ import numpy as np
 from ipywidgets import interactive, FloatSlider, Checkbox
 from IPython.display import display
 
-# Συνάρτηση εύρεσης τομής ευθειών
+# Function to find the intersection of two lines
 def get_intersect(x1, y1, x2, y2, x3, y3, x4, y4):
     denom = (x1-x2)*(y3-y4) - (y1-y2)*(x3-x4)
     if denom == 0: return x1, y1
@@ -11,42 +11,42 @@ def get_intersect(x1, y1, x2, y2, x3, y3, x4, y4):
     py = ((x1*y2 - y1*x2)*(y3-y4) - (y1-y2)*(x3*y4 - y3*x4)) / denom
     return px, py
 
-# ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Υπολογίζει τη μη-γραμμική συμπίεση της προοπτικής
-# Δουλεύει με Homogeneous Coordinates για σωστή προβολική παρεμβολή.
+# NEW FUNCTION: Calculates the non-linear compression of perspective
+# Works with Homogeneous Coordinates for correct projective interpolation.
 def projective_interpolate(p_start, p_end, vp, num_divisions=8):
-    # Μετατρέπουμε τα 2D σημεία σε Homogeneous Coordinates (x, y, 1)
+    # Convert 2D points to Homogeneous Coordinates (x, y, 1)
     p0 = np.array([p_start[0], p_start[1], 1])
     p1 = np.array([p_end[0], p_end[1], 1])
     v = np.array([vp[0], vp[1], 1])
     
-    # Υπολογίζουμε τις γραμμές (cross products)
-    l_end = np.cross(p1, v) # Γραμμή από P1 στο VP
-    l_edge = np.cross(p0, p1) # Γραμμή της ακμής P0-P1
-    l_ref = np.cross(p0, v) # Γραμμή από P0 στο VP
+    # Calculate the lines (cross products)
+    l_end = np.cross(p1, v) # Line from P1 to VP
+    l_edge = np.cross(p0, p1) # Edge line P0-P1
+    l_ref = np.cross(p0, v) # Line from P0 to VP
 
-    # Υπολογίζουμε τη διεύθυνση της γραμμής του ορίζοντα (σε Homogeneous coords)
-    # Για απλότητα σε αυτή τη 3pt simulation, χρησιμοποιούμε σταθερό ορίζοντα
-    horizon_dir = np.array([0, 1, 0]) # Κάθετη στον ορίζοντα
+    # Calculate the horizon line direction (in Homogeneous coords)
+    # For simplicity in this 3pt simulation, we use a fixed horizon
+    horizon_dir = np.array([0, 1, 0]) # Perpendicular to the horizon
     ref_dir = np.cross(np.cross(p0, p1), np.cross(np.cross(p0, p1) + horizon_dir, v))
 
-    # Υπολογισμός Measurement Point trick:
-    # Κατασκευάζουμε ομοιόμορφα σημεία σε μια "φανταστική" ground line
-    # και τα προβάλλουμε στην ακμή χρησιμοποιώντας το Measurement Point.
+    # Measurement Point trick calculation:
+    # We create uniform points on an "imaginary" ground line
+    # and project them onto the edge using the Measurement Point.
     uniform_divisions = np.linspace(0, 1, num_divisions + 1)[1:-1]
     
     projected_points = []
     
-    # ΑλγόριθμοςProjective Splitting: Χρησιμοποιούμε Geometric Cross Ratio
-    # Αυτή η μαθηματική φόρμουλα εξασφαλίζει ότι τα "εκατοστά" πυκνώνουν προς το VP.
+    # Projective Splitting Algorithm: We use Geometric Cross Ratio
+    # This mathematical formula ensures that the "centimeters" become denser towards the VP.
     dx = p_end[0] - p_start[0]
     dy = p_end[1] - p_start[1]
     # distance ratio f_p = 1 / (d_p/D + 1)... simplified trick
-    # Για αυτή τη simulation, χρησιμοποιούμε μια απλοποιημένη προβολική φόρμουλα
-    # που δίνει οπτικά σωστό αποτέλεσμα χωρίς πλήρες camera calibration matrix.
-    compression_factor = 2.0 # Ρυθμίζει την ένταση της προοπτικής συμπίεσης
+    # For this simulation, we use a simplified projective formula
+    # that gives a visually correct result without a full camera calibration matrix.
+    compression_factor = 2.0 # Adjusts the intensity of the perspective compression
     
     for t in uniform_divisions:
-        # Μη-γραμμικός υπολογισμός: f(t) = (t * (D+d)) / (D+d - t*d)
+        # Non-linear calculation: f(t) = (t * (D+d)) / (D+d - t*d)
         # d=(V_end-V_start), D=(V_start-Station)
         pt = (t * compression_factor) / (1.0 + (compression_factor-1.0)*t)
         
@@ -90,7 +90,7 @@ def draw_3pt_perspective(vp1_x, vp2_x, horizon_y, vp3_x, vp3_y, v0_x, v0_y, w_le
         side_right_x = [v0[0], v2[0], v5[0], v3[0]]
         side_right_y = [v0[1], v2[1], v5[1], v3[1]]
         
-        # Υπολογισμός Y κέντρου για επικάλυψη
+        # Calculate center Y for overlapping
         face_0_y = [v0[1], v1[1], v_back_bot[1], v2[1]]
         face_3_y = [v3[1], v4[1], v_back_top[1], v5[1]]
         y_center_0 = sum(face_0_y) / 4
@@ -99,7 +99,7 @@ def draw_3pt_perspective(vp1_x, vp2_x, horizon_y, vp3_x, vp3_y, v0_x, v0_y, w_le
         y_max = max(y_center_0, y_center_3)
         y_min = min(y_center_0, y_center_3)
         
-        # Ζωγραφίζουμε πρώτα τις πλαϊνές
+        # Draw side faces first
         plt.fill(side_left_x, side_left_y, 'lightblue', edgecolor='blue', lw=1.5, alpha=0.8)
         plt.fill(side_right_x, side_right_y, 'steelblue', edgecolor='darkblue', lw=1.5, alpha=0.8)
         
@@ -115,40 +115,40 @@ def draw_3pt_perspective(vp1_x, vp2_x, horizon_y, vp3_x, vp3_y, v0_x, v0_y, w_le
         line(v1, v4); line(v3, v4)
         line(v2, v5); line(v3, v5)
 
-    # ΝΕΟ: Εφαρμογή του Projective Rulers
-    # Αντί για ticks στις ακμές, σχεδιάζουμε ένα πλήρες grid στις επιφάνειες.
+    # NEW: Apply Projective Rulers
+    # Instead of ticks on the edges, we draw a full grid on the surfaces.
     if show_projective_rulers:
         ruler_color = 'white' if solid_faces else 'red'
         
-        # --- Αριστερή Πλευρά (X-Z plane towards VP1) ---
-        # 1. Βρίσκουμε τις συμπιεσμένες υποδιαιρέσεις στις ακμές
+        # --- Left Face (X-Z plane towards VP1) ---
+        # 1. Find the compressed subdivisions on the edges
         ticks_x_bot = projective_interpolate(v0, v1, vp1) # V0->V1, converging to VP1
         ticks_x_top = projective_interpolate(v3, v4, vp1) # V3->V4, converging to VP1
         
         ticks_z_left_bot = projective_interpolate(v0, v3, vp3) # V0->V3, converging to VP3
         ticks_z_left_top = projective_interpolate(v1, v4, vp3) # V1->V4, converging to VP3
         
-        # 2. Σχεδιάζουμε το grid
-        # Κατακόρυφες γραμμές (converge to VP3)
+        # 2. Draw the grid
+        # Vertical lines (converge to VP3)
         for tb, tt in zip(ticks_x_bot, ticks_x_top):
             plt.plot([tb[0], tt[0]], [tb[1], tt[1]], ruler_color, lw=1.0, alpha=0.6)
             
-        # Οριζόντιες γραμμές (converge to VP1)
+        # Horizontal lines (converge to VP1)
         for tb, tt in zip(ticks_z_left_bot, ticks_z_left_top):
             plt.plot([tb[0], tt[0]], [tb[1], tt[1]], ruler_color, lw=1.0, alpha=0.6)
 
-        # --- Δεξιά Πλευρά (Y-Z plane towards VP2) ---
+        # --- Right Face (Y-Z plane towards VP2) ---
         ticks_y_bot = projective_interpolate(v0, v2, vp2) # V0->V2, converging to VP2
         ticks_y_top = projective_interpolate(v3, v5, vp2) # V3->V5, converging to VP2
         
         ticks_z_right_bot = projective_interpolate(v0, v3, vp3) # V0->V3, converging to VP3
         ticks_z_right_top = projective_interpolate(v2, v5, vp3) # V2->V5, converging to VP3
         
-        # Κατακόρυφες γραμμές (converge to VP3)
+        # Vertical lines (converge to VP3)
         for tb, tt in zip(ticks_y_bot, ticks_y_top):
             plt.plot([tb[0], tt[0]], [tb[1], tt[1]], ruler_color, lw=1.0, alpha=0.6)
             
-        # Οριζόντιες γραμμές (converge to VP2)
+        # Horizontal lines (converge to VP2)
         for tb, tt in zip(ticks_z_right_bot, ticks_z_right_top):
             plt.plot([tb[0], tt[0]], [tb[1], tt[1]], ruler_color, lw=1.0, alpha=0.6)
 
